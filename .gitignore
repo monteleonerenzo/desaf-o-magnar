@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Scraper outputs
+pdfs/
+data/
+
+# Logs
+*.log
+
+# Scratch / research artifacts
+*.tmp
+*.local
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
