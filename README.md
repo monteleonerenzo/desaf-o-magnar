@@ -68,10 +68,6 @@ npm run retry-failed
 | `--no-pdf`       | Extrae metadata sin descargar los PDFs.                            |
 | `--retry-failed` | Reprocesa solo los documentos registrados en `data/failed.json`.  |
 
-> No es necesario descargar los 1753 documentos en una sola corrida. Los flags
-> `--max-pages` / `--limit` permiten demostrar el funcionamiento con un subconjunto;
-> dejándolo correr sin límites llega a descargarlos todos.
-
 ## Salidas
 
 - `data/resolutions.json`: índice estructurado con la metadata de cada resolución
