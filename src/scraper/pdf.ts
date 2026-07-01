@@ -2,7 +2,7 @@ import { CONSULTA_URL } from "../config";
 import { Session } from "../http/session";
 import { buildDownloadPayload } from "../http/jsf";
 import { withRetry } from "../utils/retry";
-import { pdfExists, sanitizeFileName, savePdf } from "../utils/files";
+import { sanitizeFileName, savePdf, uniqueFileName } from "../utils/files";
 import { ResolutionRecord } from "../types";
 import { logger } from "../utils/logger";
 
@@ -10,31 +10,13 @@ const DOWNLOAD_HEADERS = {
   "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
 };
 
-function filenameFromDisposition(header: string | undefined): string | null {
-  if (!header) return null;
-  const utf8 = header.match(/filename\*=UTF-8''([^;]+)/i);
-  if (utf8) {
-    try {
-      return decodeURIComponent(utf8[1].trim());
-    } catch {
-      /* fall through */
-    }
-  }
-  const plain = header.match(/filename="?([^";]+)"?/i);
-  if (!plain) return null;
-  return plain[1].trim();
-}
-
-function targetFileName(record: ResolutionRecord, disposition?: string): string {
-  const fromHeader = filenameFromDisposition(disposition);
-  const base =
-    fromHeader ??
-    `${record.numeroResolucion || record.numeroExpediente || "documento"}.pdf`;
-  const withExt = base.toLowerCase().endsWith(".pdf") ? base : `${base}.pdf`;
-  const shortUuid = record.uuid.slice(0, 8);
-  const dot = withExt.lastIndexOf(".");
-  const stem = withExt.slice(0, dot);
-  return sanitizeFileName(`${stem} [${shortUuid}].pdf`);
+function targetFileName(record: ResolutionRecord): string {
+  const resolucion =
+    record.numeroResolucion || record.numeroExpediente || "resolucion";
+  const administrado = record.administrado
+    ? ` - ${record.administrado.slice(0, 60)}`
+    : "";
+  return sanitizeFileName(`${resolucion}${administrado}.pdf`);
 }
 
 export interface DownloadOutcome {
@@ -49,12 +31,6 @@ export async function downloadPdf(
 ): Promise<DownloadOutcome> {
   if (!record.uuid) {
     throw new Error("Registro sin uuid; no se puede descargar el PDF.");
-  }
-
-  const provisional = targetFileName(record);
-  if (pdfExists(provisional)) {
-    logger.info(`PDF ya existe, se omite: ${provisional}`);
-    return { fileName: provisional, attempts: 0, skipped: true };
   }
 
   const { value, attempts } = await withRetry(
@@ -81,11 +57,8 @@ export async function downloadPdf(
     }
   );
 
-  const fileName = targetFileName(
-    record,
-    String(value.headers["content-disposition"] ?? "")
-  );
   const buffer = Buffer.from(value.data);
+  const fileName = uniqueFileName(targetFileName(record));
   savePdf(fileName, buffer);
   logger.info(`PDF guardado (${(buffer.length / 1024).toFixed(0)} KB): ${fileName}`);
   return { fileName, attempts, skipped: false };

@@ -6,7 +6,12 @@ import {
 import { Session } from "./http/session";
 import { fetchPage, performSearch } from "./scraper/search";
 import { downloadPdf } from "./scraper/pdf";
-import { ensureDirs, readResolutions, writeResolutions } from "./utils/files";
+import {
+  ensureDirs,
+  pdfExists,
+  readResolutions,
+  writeResolutions,
+} from "./utils/files";
 import { FailureLog } from "./utils/failures";
 import { logger, sleep } from "./utils/logger";
 import { CliOptions, ResolutionRecord } from "./types";
@@ -82,6 +87,10 @@ async function tryDownload(
   store: ResolutionStore,
   failures: FailureLog
 ): Promise<void> {
+  if (record.downloaded && record.pdfFileName && pdfExists(record.pdfFileName)) {
+    logger.info(`PDF ya descargado, se omite: ${record.pdfFileName}`);
+    return;
+  }
   try {
     const outcome = await downloadPdf(session, record);
     record.pdfFileName = outcome.fileName;
@@ -104,7 +113,11 @@ async function runFullScrape(session: Session, opts: CliOptions): Promise<void> 
 
   const search = await performSearch(session);
   if (search.totalPages === 0) {
-    logger.warn("La busqueda no devolvio registros.");
+    logger.warn(
+      "El servidor devolvio 0 registros. Suele ser una condicion temporal del " +
+        "portal del OEFA (el navegador puede mostrar 0 hasta que el backend se " +
+        "restablece). Espera unos minutos y vuelve a intentar."
+    );
     return;
   }
 
@@ -125,11 +138,11 @@ async function runFullScrape(session: Session, opts: CliOptions): Promise<void> 
     );
 
     for (const record of records) {
-      store.upsert(record);
+      const merged = store.upsert(record);
       store.flush();
 
       if (opts.downloadPdf) {
-        await tryDownload(session, record, store, failures);
+        await tryDownload(session, merged, store, failures);
       }
 
       processed++;

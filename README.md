@@ -44,9 +44,6 @@ Ejecutar el scraper completo (recorre todas las páginas y descarga todos los PD
 npm run scrape
 ```
 
-Para pasar opciones conviene invocar `ts-node` directamente (npm no reenvía bien los
-flags con `--`):
-
 ```bash
 # Solo las primeras 3 páginas
 npx ts-node src/index.ts --max-pages 3
@@ -115,7 +112,3 @@ src/
     logger.ts          Logging con timestamps
 ```
 
-## Notas
-
-- El sitio principal del desafío (`jurisprudencia.pj.gob.pe`) requiere VPN a Perú;
-  este proyecto usa el sitio alternativo del OEFA, accesible sin VPN.

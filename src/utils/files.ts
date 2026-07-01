@@ -22,6 +22,16 @@ export function pdfExists(fileName: string): boolean {
   return fs.existsSync(path.join(PDF_DIR, fileName));
 }
 
+export function uniqueFileName(fileName: string): string {
+  if (!pdfExists(fileName)) return fileName;
+  const dot = fileName.lastIndexOf(".");
+  const stem = dot >= 0 ? fileName.slice(0, dot) : fileName;
+  const ext = dot >= 0 ? fileName.slice(dot) : "";
+  let i = 1;
+  while (pdfExists(`${stem}_${i}${ext}`)) i++;
+  return `${stem}_${i}${ext}`;
+}
+
 export function savePdf(fileName: string, data: Buffer): string {
   const target = path.join(PDF_DIR, fileName);
   fs.writeFileSync(target, data);
